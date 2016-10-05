@@ -170,19 +170,19 @@ namespace ModernHttpClient
             return cb.Task;
         }
 
-        class OkTaskCallback : Java.Lang.Object, ICallback
+        private class OkTaskCallback : Java.Lang.Object, ICallback
         {
             readonly TaskCompletionSource<Response> tcs = new TaskCompletionSource<Response>();
             public Task<Response> Task { get { return tcs.Task; } }
 
             public void OnFailure(Request p0, Java.IO.IOException p1)
             {
-                // Kind of a hack, but the simplest way to find out that server cert. validation failed
-                if (p1.Message == String.Format("Hostname '{0}' was not verified", p0.Url().Host)) {
-                    tcs.TrySetException(new WebException(p1.LocalizedMessage, WebExceptionStatus.TrustFailure));
-                } else {
-                    tcs.TrySetException(p1);
-                }
+				// Kind of a hack, but the simplest way to find out that server cert. validation failed
+				var webExceptionStatus = p1.Message == String.Format("Hostname '{0}' was not verified", p0.Url().Host) ?
+					WebExceptionStatus.TrustFailure : WebExceptionStatus.UnknownError;
+
+				var webException = new WebException(p1.LocalizedMessage, webExceptionStatus);
+				tcs.TrySetException(webException);
             }
 
             public void OnResponse(Response p0)
